@@ -1,4 +1,4 @@
-version: 3
+version: "3"
 
 services:
 
@@ -6,9 +6,9 @@ services:
     image: postgres:alpine
     container_name: database
     environment:
-      - POSTGRES_DB: gitlab
-      - POSTGRES_USER: gitlab
-      - POSTGRES_PASSWORD: gitlab
+      - "POSTGRES_DB=gitlab"
+      - "POSTGRES_USER=gitlab"
+      - "POSTGRES_PASSWORD=gitlab"
     ports:
       - 5432:5432
     depends_on:
@@ -21,8 +21,9 @@ services:
   gitlab:
     image: dimdm/gitlab
     container_name: gitlab
-    expose:
-      - 80:80
+    command: gitlab-ctl reconfigure
+    ports:
+      - 8889:8889
     links:
       - database
     depends_on:
@@ -40,7 +41,7 @@ services:
     links:
       - gitlab
     expose:
-      - 80:80
+      - 80/tcp
     depends_on:
       - logstash
     logging:
@@ -72,7 +73,7 @@ services:
     ports:
       - 5050:5050
 
-weave:
+  weave:
     image: weaveworks/scope
     container_name: weave
     privileged: true
@@ -82,7 +83,7 @@ weave:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:rw
     environment:
-      - CHECKPOINT_DISABLE: true
+      - "CHECKPOINT_DISABLE=rue"
     command: --probe.docker true
     ports:
       - 4040:4040
@@ -91,7 +92,7 @@ weave:
     image: elasticsearch:alpine
     container_name: elasticsearch
     expose:
-      - 9300:9300
+      - 9300/tcp
     ports:
       - 9200:9200
 

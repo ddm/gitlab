@@ -7,3 +7,5 @@ RUN apt-get update &&\
     chmod +x /tmp/script.deb.sh &&\
     bash /tmp/script.deb.sh &&\
     apt-get install gitlab-ce
+
+EXPOSE 8889
