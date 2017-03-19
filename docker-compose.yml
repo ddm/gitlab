@@ -1,0 +1,120 @@
+version: 3
+
+services:
+
+  database:
+    image: postgres:alpine
+    container_name: database
+    environment:
+      - POSTGRES_DB: gitlab
+      - POSTGRES_USER: gitlab
+      - POSTGRES_PASSWORD: gitlab
+    ports:
+      - 5432:5432
+    depends_on:
+      - logstash
+    logging:
+      driver: gelf
+      options:
+        gelf-address: udp://localhost:12201
+
+  gitlab:
+    image: dimdm/gitlab
+    container_name: gitlab
+    expose:
+      - 80:80
+    links:
+      - database
+    depends_on:
+      - logstash
+    logging:
+      driver: gelf
+      options:
+        gelf-address: udp://localhost:12201
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    links:
+      - gitlab
+    expose:
+      - 80:80
+    depends_on:
+      - logstash
+    logging:
+      driver: gelf
+      options:
+        gelf-address: udp://localhost:12201
+
+  haproxy:
+    image: haproxy:alpine
+    container_name: haproxy
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    links:
+      - nginx
+    ports:
+      - 80:80
+    depends_on:
+      - logstash
+    logging:
+      driver: gelf
+      options:
+        gelf-address: udp://localhost:12201
+
+  pgadmin:
+    image: thajeztah/pgadmin4
+    container_name: pgadmin
+    links:
+      - database
+    ports:
+      - 5050:5050
+
+weave:
+    image: weaveworks/scope
+    container_name: weave
+    privileged: true
+    pid: host
+    labels:
+      - works.weave.role=system
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+    environment:
+      - CHECKPOINT_DISABLE: true
+    command: --probe.docker true
+    ports:
+      - 4040:4040
+
+  elasticsearch:
+    image: elasticsearch:alpine
+    container_name: elasticsearch
+    expose:
+      - 9300:9300
+    ports:
+      - 9200:9200
+
+  logstash:
+    image: dimdm/logstash
+    container_name: logstash
+    links:
+      - elasticsearch
+    ports:
+      - 12201:12201/udp
+
+  kibana:
+    image: kibana
+    container_name: kibana
+    links:
+      - elasticsearch
+    ports:
+      - 5601:5601
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    links:
+      - elasticsearch
+    ports:
+      - 3000:3000
